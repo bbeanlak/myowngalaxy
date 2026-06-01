@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌌 Tata Surya 3D Interaktif</title>
+    <style>
+        /* ========================================
+           ROOT VARIABLES & RESET
+           ======================================== */
+        :root {
+            --primary-color: #f39c12;
+            --secondary-color: #f1c40f;
+            --bg-dark: #000005;
+            --text-color: #ffffff;
+            --glass-bg: rgba(10, 10, 15, 0.75);
+            --glass-border: rgba(243, 156, 18, 0.4);
+            --glow-color: rgba(243, 156, 18, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            background: var(--bg-dark);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color);
+            cursor: grab;
+        }
+
+        body:active {
+            cursor: grabbing;
+        }
+
+        /* ========================================
+           LOADING SCREEN
+           ======================================== */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, #000a1a 0%, #000000 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.8s ease, visibility 0.8s ease;
+        }
+
+        #loading-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .loader {
+            text-align: center;
+        }
+
+        .loader-text {
+            font-size: 1.2rem;
+            font-weight: 300;
+            letter-spacing: 6px;
+            color: var(--primary-color);
+            margin-bottom: 25px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .progress-bar {
+            width: 250px;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+            margin: 0 auto;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--primary-color), #e74c3c);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px var(--glow-color);
+        }
+
+        .progress-text {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 2px;
+        }
+
+        /* ========================================
+           INFO PANEL (MINIMALIST)
+           ======================================== */
+        #info-panel {
+            position: fixed;
+            top: 25px;
+            left: 25px;
+            z-index: 100;
+            pointer-events: none;
+            background: var(--glass-bg);
+            padding: 18px 22px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-color);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            max-width: 320px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.4s ease;
+        }
+
+        #info-panel h1 {
+            font-size: 1.4rem;
+            font-weight: 400;
+            letter-spacing: 2px;
+            color: var(--primary-color);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        #info-panel p {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.85);
+            line-height: 1.6;
+            margin-bottom: 0;
+        }
+
+        /* ========================================
+           CONTROLS
+           ======================================== */
+        #controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .control-btn {
+            padding: 0 20px;
+            height: 45px;
+            border-radius: 25px;
+            border: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: var(--text-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-family: inherit;
+            font-weight: 500;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(243, 156, 18, 0.2);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 15px rgba(243, 156, 18, 0.3);
+            transform: scale(1.05);
+        }
+
+        .control-btn.active {
+            background: rgba(243, 156, 18, 0.3);
+            border-color: var(--primary-color);
+        }
+
+        .control-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        #btn-back {
+            display: none; 
+            background: rgba(231, 76, 60, 0.15);
+            border-color: rgba(231, 76, 60, 0.5);
+            color: #ff7675;
+        }
+        #btn-back:hover {
+            background: rgba(231, 76, 60, 0.3);
+            box-shadow: 0 0 15px rgba(231, 76, 60, 0.3);
+        }
+
+        /* ========================================
+           CANVAS CONTAINER
+           ======================================== */
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        /* ========================================
+           MEDIA MODAL (NEW INTERACTIVE FEATURE)
+           ======================================== */
+        #media-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.65);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+        }
+
+        #media-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: rgba(15, 10, 15, 0.82); /* Kaca rose-dark yang lebih solid & romantis */
+            border: 1px solid rgba(255, 218, 224, 0.25);
+            border-radius: 24px;
+            padding: 35px 25px;
+            max-width: 420px; /* Diperlebar sedikit agar foto vertikal bernapas lega */
+            width: 90%;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 45px rgba(255, 182, 193, 0.18);
+            transform: scale(0.9);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        #media-modal.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 2rem;
+            cursor: pointer;
+            transition: color 0.3s ease;
+            line-height: 1;
+            font-weight: 300;
+        }
+
+        .modal-close:hover {
+            color: #ffdae0;
+        }
+
+        #modal-img {
+            width: 100%;
+            height: auto;
+            max-height: 52vh; /* Menjaga agar foto tidak kepanjangan melebihi layar HP */
+            object-fit: contain; /* Menampilkan 100% foto penuh secara utuh tanpa terpotong */
+            border-radius: 18px;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.03); /* Latar belakang kaca super lembut */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+            transition: opacity 0.15s ease-in-out;
+        }
+
+        #modal-title {
+            font-size: 1.8rem;
+            color: #ffdae0;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-style: italic;
+        }
+
+        /* Carousel Styles */
+        .carousel-wrapper {
+            position: relative;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .carousel-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 218, 224, 0.3);
+            color: #ffdae0;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            font-size: 1.2rem;
+            backdrop-filter: blur(4px);
+            transition: all 0.3s ease;
+        }
+
+        .carousel-btn:hover {
+            background: rgba(255, 218, 224, 0.4);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(255, 218, 224, 0.3);
+        }
+
+        .btn-prev { left: 10px; }
+        .btn-next { right: 10px; }
+
+        .carousel-dots {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .dot.active {
+            background: #ffdae0;
+            transform: scale(1.3);
+            box-shadow: 0 0 8px rgba(255, 218, 224, 0.6);
+        }
+
+        /* Menghapus gaya duplikat #modal-img lama agar tidak menimpa pengaturan rasio dinamis baru */
+
+        #modal-caption {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.85);
+            margin-bottom: 20px;
+            line-height: 1.5;
+            font-weight: 300;
+        }
+
+        /* Sound Wave Indicator */
+        .sound-wave {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 5px;
+            height: 30px;
+            margin-top: 10px;
+        }
+
+        .sound-wave .bar {
+            width: 3px;
+            height: 5px;
+            background-color: #ffdae0;
+            border-radius: 3px;
+            animation: bounce-bar 0.8s ease-in-out infinite alternate;
+        }
+
+        .sound-wave .bar:nth-child(2) { animation-delay: 0.15s; }
+        .sound-wave .bar:nth-child(3) { animation-delay: 0.3s; }
+        .sound-wave .bar:nth-child(4) { animation-delay: 0.45s; }
+        .sound-wave .bar:nth-child(5) { animation-delay: 0.1s; }
+
+        @keyframes bounce-bar {
+            0% { height: 4px; }
+            100% { height: 26px; }
+        }
+
+        /* ========================================
+           RESPONSIVE
+           ======================================== */
+        @media (max-width: 768px) {
+            #info-panel {
+                top: 15px;
+                left: 15px;
+                right: 15px;
+                max-width: none;
+                padding: 15px;
+            }
+
+            #info-panel h1 { font-size: 1.2rem; }
+            #info-panel p { font-size: 0.75rem; }
+            #controls { bottom: 15px; width: 100%; justify-content: center; }
+            .control-btn { font-size: 0.75rem; padding: 0 15px; height: 40px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loader">
+            <div class="loader-text">MEMUAT TATA SURYA...</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="progress-text" id="progress-text">0%</div>
+        </div>
+    </div>
+
+    <!-- Info Panel (Minimalist) -->
+    <div id="info-panel">
+        <h1 id="info-title">TATA SURYA</h1>
+        <p id="info-desc">Sistem planet tempat kita tinggal. Klik planet mana saja untuk memperbesar (Zoom), lalu tahan dan geser mouse untuk melihat dari berbagai sudut!</p>
+    </div>
+
+    <!-- Controls -->
+    <div id="controls">
+        <button id="btn-pause" class="control-btn" title="Jeda/Lanjutkan Waktu">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="6" y="4" width="4" height="16"></rect>
+                <rect x="14" y="4" width="4" height="16"></rect>
+            </svg>
+            Jeda Orbit
+        </button>
+        <button id="btn-back" class="control-btn" title="Kembali melihat semua">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Kembali
+        </button>
+    </div>
+
+    <!-- Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- Interactive Media Modal -->
+    <div id="media-modal">
+        <div class="modal-content">
+            <button class="modal-close" id="modal-close-btn">&times;</button>
+            <div class="modal-body">
+                <div class="carousel-wrapper">
+                    <button class="carousel-btn btn-prev" id="carousel-prev">&#10094;</button>
+                    <img id="modal-img" src="" alt="Media Photo" onerror="this.src='https://placehold.co/400x400/2c3e50/ffffff?text=Foto+Tidak+Ditemukan'">
+                    <button class="carousel-btn btn-next" id="carousel-next">&#10095;</button>
+                </div>
+                <div class="carousel-dots" id="carousel-dots">
+                    <!-- Dots will be generated here -->
+                </div>
+                <h2 id="modal-title">Nama</h2>
+                <p id="modal-caption">Soundtrack sedang diputar...</p>
+                <div class="sound-wave">
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- Main Script -->
+    <script>
+        /* ==========================================================================
+           PENGATURAN ASSET FOTO DAN MP3 (BISA ANDA GANTI DENGAN BEBAS DI BAWAH INI)
+           ========================================================================== */
+        // Masukkan MULTIPLE link foto Anda & lagu soundtrack Anda sendiri di sini
+        const USER_PHOTO_URLS = [
+            'me8.jpeg',
+            'me2.jpeg',
+            'me3.jpeg',
+            'me4.jpeg',
+            'me5.jpeg',
+            'me6.jpeg',
+            'me7.jpeg',
+            'me9.jpeg',
+            'me10.jpeg',
+            'me11.jpeg',
+            'me12.jpeg',
+            'me13.jpeg',
+            'mekeri.jpeg',
+        ]; 
+        const USER_SOUNDTRACK_URL = 'song1.mp3'; 
+
+        // Masukkan MULTIPLE link foto Kartika & lagu soundtrack Kartika di sini
+        const KARTIKA_PHOTO_URLS = [
+            'foto1.jpeg',
+            'foto2.jpeg',
+            'foto3.jpeg',
+            'foto4.jpeg',
+            'foto5.jpeg',
+            'foto6.jpeg',
+            'foto7.jpeg',
+            'foto8.jpeg',
+            'foto9.jpeg',
+            'foto10.jpeg'
+        ]; 
+        const KARTIKA_SOUNDTRACK_URL = 'song2.mp3'; 
+
+        /* ========================================================================== */
+
+        // --- Data Planet & Objek ---
+        const SOLAR_SYSTEM_DATA = [
+            {
+                id: 'sun', name: 'Matahari',
+                desc: 'Pusat tata surya. Bola gas raksasa yang bercahaya terang.',
+                radius: 12, distance: 0, orbitSpeed: 0, rotationSpeed: 0.002, tilt: 0.12,
+                color: '#ffcc00', textureUrl: 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/sun.jpg',
+                emissive: true
+            },
+            {
+                id: 'mercury', name: 'Merkurius',
+                desc: 'Planet terkecil dan terdekat dengan Matahari.',
+                radius: 0.8, distance: 20, orbitSpeed: 0.04, rotationSpeed: 0.01, tilt: 0.03,
+                color: '#8a8a8a', textureUrl: 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/moon_1024.jpg'
+            },
+            {
+                id: 'venus', name: 'Venus',
+                desc: 'Planet terpanas di tata surya dengan rotasi terbalik.',
+                radius: 1.9, distance: 28, orbitSpeed: 0.015, rotationSpeed: -0.005, tilt: 3.09,
+                color: '#e0b876', textureUrl: 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/venus_surface_2048.jpg'
+            },
+            {
+                id: 'earth', name: 'Bumi',
+                desc: 'Memiliki 1 satelit alami istimewa (Kartika). Satu-satunya planet dengan kehidupan.',
+                radius: 2, distance: 38, orbitSpeed: 0.01, rotationSpeed: 0.02, tilt: 0.41,
+                color: '#2b82c9', textureUrl: 'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg',
+                moons: [
+                    { name: 'Kartika (Bulan)', radius: 0.4, distance: 3.5, speed: 0.03, color: '#dddddd', textureUrl: 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/moon_1024.jpg', isKartika: true }
+                ]
+            },
+            {
+                id: 'mars', name: 'Mars',
+                desc: 'Planet Merah. Memiliki 2 satelit kecil (Phobos dan Deimos).',
+                radius: 1.1, distance: 48, orbitSpeed: 0.008, rotationSpeed: 0.018, tilt: 0.44,
+                color: '#c1440e', textureUrl: 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/mars_1k_color.jpg',
+                moons: [
+                    { name: 'Phobos', radius: 0.1, distance: 1.8, speed: 0.05, color: '#a3988b' },
+                    { name: 'Deimos', radius: 0.08, distance: 2.5, speed: 0.03, color: '#c7c2bc' }
+                ]
+            },
+            {
+                id: 'jupiter', name: 'Yupiter',
+                desc: 'Planet terbesar. Memiliki lebih dari 90 bulan, termasuk 4 Bulan Galilea besar.',
+                radius: 6, distance: 68, orbitSpeed: 0.002, rotationSpeed: 0.04, tilt: 0.05,
+                color: '#c9a473', textureUrl: 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/jupiter_1k_color.jpg',
+                moons: [
+                    { name: 'Io', radius: 0.3, distance: 7.5, speed: 0.06, color: '#e6c83c' },
+                    { name: 'Europa', radius: 0.25, distance: 8.8, speed: 0.04, color: '#c4bb97' },
+                    { name: 'Ganymede', radius: 0.4, distance: 10.5, speed: 0.03, color: '#8a7d6d' },
+                    { name: 'Callisto', radius: 0.35, distance: 12.5, speed: 0.02, color: '#59534a' }
+                ]
+            },
+            {
+                id: 'saturn', name: 'Saturnus',
+                desc: 'Terkenal dengan cincin esnya dan satelit raksasa Titan.',
+                radius: 5, distance: 95, orbitSpeed: 0.0009, rotationSpeed: 0.038, tilt: 0.46,
+                color: '#e0cd94', textureUrl: 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/saturn_1k_color.jpg',
+                hasRing: true,
+                moons: [
+                    { name: 'Titan', radius: 0.38, distance: 9.5, speed: 0.02, color: '#d1a758' },
+                    { name: 'Enceladus', radius: 0.15, distance: 7.5, speed: 0.04, color: '#ffffff' },
+                    { name: 'Rhea', radius: 0.2, distance: 8.5, speed: 0.03, color: '#cccccc' }
+                ]
+            },
+            {
+                id: 'uranus', name: 'Uranus',
+                desc: 'Raksasa es yang berotasi menyamping (miring ekstrem).',
+                radius: 3.5, distance: 120, orbitSpeed: 0.0004, rotationSpeed: -0.03, tilt: 1.71,
+                color: '#73c9c7', textureUrl: 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/uranus_1k_color.jpg',
+                moons: [
+                    { name: 'Titania', radius: 0.2, distance: 5.5, speed: 0.03, color: '#bbbbbb' },
+                    { name: 'Oberon', radius: 0.18, distance: 6.5, speed: 0.02, color: '#a0a0a0' }
+                ]
+            },
+            {
+                id: 'neptune', name: 'Neptunus',
+                desc: 'Planet terluar dengan satelit besarnya yang retrograde (berlawanan arah), Triton.',
+                radius: 3.4, distance: 140, orbitSpeed: 0.0001, rotationSpeed: 0.032, tilt: 0.49,
+                color: '#3b54a8', textureUrl: 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/neptune_1k_color.jpg',
+                moons: [
+                    { name: 'Triton', radius: 0.25, distance: 5.5, speed: -0.03, color: '#c4d7d6' }
+                ]
+            }
+        ];
+
+        // --- Global Variables ---
+        let scene, camera, renderer, controls;
+        let starField;
+        const planetObjects = []; 
+        const clickableMeshes = []; 
+        
+        // Raycaster variables
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        // Peningkatan Kamera & Transisi
+        let targetPlanet = null; 
+        let isTransitioning = false;
+        let lastTargetPos = new THREE.Vector3(); 
+        let isTimePaused = false;
+
+        let texturesLoaded = 0;
+        let totalTextures = 2; 
+
+        // Sound controller
+        let activeAudio = null;
+
+        // Carousel controller
+        let currentPhotosArray = [];
+        let currentPhotoIndex = 0;
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        // --- Loading Manager ---
+        const loadingManager = {
+            timeout: null,
+            init() {
+                totalTextures = SOLAR_SYSTEM_DATA.filter(d => d.textureUrl).length + 1; 
+                SOLAR_SYSTEM_DATA.forEach(d => {
+                    if(d.moons) totalTextures += d.moons.filter(m => m.textureUrl).length;
+                });
+
+                texturesLoaded = 0;
+                this.update(0);
+                this.timeout = setTimeout(() => this.complete(), 15000); 
+            },
+            update() {
+                texturesLoaded++;
+                const percent = Math.min(Math.round((texturesLoaded / totalTextures) * 100), 100);
+                const progressBar = document.getElementById('progress-fill');
+                const progressText = document.getElementById('progress-text');
+                if (progressBar) progressBar.style.width = percent + '%';
+                if (progressText) progressText.textContent = percent + '%';
+                
+                if (texturesLoaded >= totalTextures) this.complete();
+            },
+            complete() {
+                if (this.timeout) { clearTimeout(this.timeout); this.timeout = null; }
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) loadingScreen.classList.add('hidden');
+            }
+        };
+
+        // --- Helper: Load Texture with Fallback ---
+        function loadTexture(url, fallbackColor) {
+            return new Promise((resolve) => {
+                const loader = new THREE.TextureLoader();
+                loader.crossOrigin = 'anonymous';
+                loader.load(
+                    url,
+                    (texture) => {
+                        loadingManager.update();
+                        resolve(texture);
+                    },
+                    undefined,
+                    () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 128; canvas.height = 128;
+                        const ctx = canvas.getContext('2d');
+                        ctx.fillStyle = fallbackColor || '#ffffff';
+                        ctx.fillRect(0, 0, 128, 128);
+                        ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                        for(let i=0; i<30; i++) {
+                            ctx.beginPath();
+                            ctx.arc(Math.random()*128, Math.random()*128, Math.random()*10, 0, Math.PI*2);
+                            ctx.fill();
+                        }
+                        loadingManager.update();
+                        resolve(new THREE.CanvasTexture(canvas));
+                    }
+                );
+            });
+        }
+
+        // --- Initialize Scene ---
+        function init() {
+            loadingManager.init();
+
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 3000);
+            camera.position.set(0, 150, 220);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.1;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxDistance = 800;
+            controls.minDistance = 2;
+
+            setupLights();
+            createStars();
+            createSolarSystem();
+
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('pointerdown', onMouseClick);
+            setupUIControls();
+
+            animate();
+        }
+
+        // --- Setup Lights & Sun Glow ---
+        function setupLights() {
+            const ambientLight = new THREE.AmbientLight(0x2a2a2a); 
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.PointLight(0xffffff, 2.5, 900);
+            scene.add(sunLight);
+
+            const glowCanvas = document.createElement('canvas');
+            glowCanvas.width = 256;
+            glowCanvas.height = 256;
+            const context = glowCanvas.getContext('2d');
+            const gradient = context.createRadialGradient(128, 128, 0, 128, 128, 128);
+            gradient.addColorStop(0, 'rgba(255, 200, 50, 1)');
+            gradient.addColorStop(0.2, 'rgba(255, 150, 0, 0.8)');
+            gradient.addColorStop(0.5, 'rgba(255, 100, 0, 0.3)');
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, 256, 256);
+
+            const glowTexture = new THREE.CanvasTexture(glowCanvas);
+            const glowMaterial = new THREE.SpriteMaterial({ map: glowTexture, color: 0xffaa00, transparent: true, blending: THREE.AdditiveBlending });
+            const glowSprite = new THREE.Sprite(glowMaterial);
+            glowSprite.scale.set(45, 45, 1); 
+            scene.add(glowSprite);
+        }
+
+        // --- Peningkatan Bintang ---
+        function createStars() {
+            const geometry = new THREE.BufferGeometry();
+            const positions = [];
+            const colors = [];
+            
+            const colorPalette = [
+                new THREE.Color(0xffffff), 
+                new THREE.Color(0xaaccff), 
+                new THREE.Color(0xffddaa)  
+            ];
+
+            for (let i = 0; i < 20000; i++) {
+                positions.push(
+                    (Math.random() - 0.5) * 2000,
+                    (Math.random() - 0.5) * 2000,
+                    (Math.random() - 0.5) * 2000
+                );
+                
+                const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+                colors.push(color.r, color.g, color.b);
+            }
+            
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            
+            const material = new THREE.PointsMaterial({ size: 0.6, transparent: true, opacity: 0.8, vertexColors: true });
+            starField = new THREE.Points(geometry, material);
+            scene.add(starField);
+        }
+
+        // --- Helper: Buat Karakter Lucu (Kartika) ---
+        function createDancingKartika() {
+            const kartikaGroup = new THREE.Group();
+            
+            // Kepala
+            const headGeo = new THREE.SphereGeometry(0.12, 16, 16);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xffdbac, roughness: 0.4 }); 
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.y = 0.28;
+            kartikaGroup.add(head);
+
+            // Rambut
+            const hairGeo = new THREE.SphereGeometry(0.13, 16, 16);
+            const hairMat = new THREE.MeshStandardMaterial({ color: 0xe67e22, roughness: 0.8 }); // Kartika's cute ginger hair
+            const hair = new THREE.Mesh(hairGeo, hairMat);
+            hair.position.set(0, 0.31, -0.02);
+            kartikaGroup.add(hair);
+            
+            // Baju
+            const bodyGeo = new THREE.ConeGeometry(0.1, 0.2, 16);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x9b59b6, roughness: 0.5 }); // Purple dress
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 0.1;
+            kartikaGroup.add(body);
+
+            return kartikaGroup;
+        }
+
+        // --- Create All Planets & Moons ---
+        async function createSolarSystem() {
+            const sphereGeo = new THREE.SphereGeometry(1, 64, 64);
+
+            for (const data of SOLAR_SYSTEM_DATA) {
+                const orbitGroup = new THREE.Group();
+                scene.add(orbitGroup);
+
+                const planetPosGroup = new THREE.Group();
+                planetPosGroup.position.x = data.distance;
+                orbitGroup.add(planetPosGroup);
+
+                const planetTiltGroup = new THREE.Group();
+                planetTiltGroup.rotation.z = data.tilt || 0;
+                planetPosGroup.add(planetTiltGroup);
+
+                let texture = null;
+                if(data.textureUrl) texture = await loadTexture(data.textureUrl, data.color);
+                
+                let material = data.emissive 
+                    ? new THREE.MeshBasicMaterial({ map: texture })
+                    : new THREE.MeshStandardMaterial({ map: texture, roughness: 0.6, metalness: 0.1 });
+
+                const planetMesh = new THREE.Mesh(sphereGeo, material);
+                planetMesh.scale.setScalar(data.radius);
+                planetMesh.userData = { isPlanet: true, info: data };
+                planetTiltGroup.add(planetMesh); 
+                clickableMeshes.push(planetMesh);
+
+                // --- SPESIAL: Jawa Timur Pin di Bumi ---
+                if (data.id === 'earth') {
+                    // Penanda Lokasi: Lingkaran Pin Merah Kecil
+                    const markerGeo = new THREE.SphereGeometry(0.03, 16, 16);
+                    const markerMat = new THREE.MeshBasicMaterial({ color: 0xff2222 });
+                    const markerMesh = new THREE.Mesh(markerGeo, markerMat);
+
+                    // Menghitung letak Latitude -7.5 (Jawa Timur), Longitude 112.5 (Indonesia) pada bola Bumi
+                    const lat = -7.5 * Math.PI / 180;
+                    const lon = 112.5 * Math.PI / 180;
+                    const markerRadius = 1.01; // sedikit melayang di atas permukaan Bumi
+
+                    const mx = markerRadius * Math.cos(lat) * Math.sin(lon);
+                    const my = markerRadius * Math.sin(lat);
+                    const mz = markerRadius * Math.cos(lat) * Math.cos(lon);
+
+                    markerMesh.position.set(mx, my, mz);
+                    markerMesh.userData = { isJawaTimur: true };
+                    
+                    // Tambahkan ring berdenyut siber di permukaan bumi
+                    const ringGeo = new THREE.RingGeometry(0.04, 0.06, 32);
+                    const ringMat = new THREE.MeshBasicMaterial({ color: 0xff3333, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+                    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+                    ringMesh.position.set(mx, my, mz);
+                    ringMesh.lookAt(0, 0, 0); // Menghadap permukaan Bumi
+                    ringMesh.userData = { isJawaTimur: true };
+
+                    // Masukkan ke dalam Bumi mesh agar ikut berputar
+                    planetMesh.add(markerMesh);
+                    planetMesh.add(ringMesh);
+
+                    // Masukkan ke array clickable agar bisa diklik langsung
+                    clickableMeshes.push(markerMesh);
+                    clickableMeshes.push(ringMesh);
+                }
+
+                // Garis Orbit Utama
+                if (data.distance > 0) {
+                    const pathGeo = new THREE.RingGeometry(data.distance - 0.2, data.distance + 0.2, 128);
+                    const pathMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.25 });
+                    const orbitPath = new THREE.Mesh(pathGeo, pathMat);
+                    orbitPath.rotation.x = Math.PI / 2;
+                    scene.add(orbitPath);
+                }
+
+                if (data.hasRing) {
+                    const ringTex = await loadTexture('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/saturn_ring_alpha.png', '#a89871');
+                    
+                    const innerR = data.radius * 1.2;
+                    const outerR = data.radius * 1.8;
+                    const ringGeo = new THREE.RingGeometry(innerR, outerR, 64);
+                    
+                    var pos = ringGeo.attributes.position;
+                    var v3 = new THREE.Vector3();
+                    for (let i = 0; i < pos.count; i++){
+                        v3.fromBufferAttribute(pos, i);
+                        ringGeo.attributes.uv.setXY(i, v3.length() < (data.radius*1.5) ? 0 : 1, 1);
+                    }
+
+                    const ringMat = new THREE.MeshStandardMaterial({ 
+                        map: ringTex, color: 0xe0cd94,
+                        side: THREE.DoubleSide, transparent: true, opacity: 0.9 
+                    });
+                    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+                    ringMesh.rotation.x = Math.PI / 2; 
+                    planetTiltGroup.add(ringMesh);
+                }
+
+                const moonRefs = [];
+                if (data.moons) {
+                    for (const moonData of data.moons) {
+                        const moonOrbitGroup = new THREE.Group();
+                        moonOrbitGroup.rotation.z = (Math.random() - 0.5) * 0.2; 
+                        planetPosGroup.add(moonOrbitGroup);
+
+                        let moonTex = null;
+                        if(moonData.textureUrl) {
+                            moonTex = await loadTexture(moonData.textureUrl, moonData.color);
+                        }
+                        
+                        const moonMat = moonTex 
+                            ? new THREE.MeshStandardMaterial({ map: moonTex, roughness: 0.8 })
+                            : new THREE.MeshStandardMaterial({ color: moonData.color, roughness: 0.8 });
+                        
+                        const moonMesh = new THREE.Mesh(sphereGeo, moonMat);
+                        moonMesh.scale.setScalar(moonData.radius);
+                        moonMesh.position.x = moonData.distance;
+                        moonMesh.userData = { isMoon: true, info: moonData };
+                        clickableMeshes.push(moonMesh); // BUAT MOON BISA DIKLIK KARTIKA
+
+                        // --- SPESIAL: KARTIKA (Karakter & Tulisan Tato di Bulan) ---
+                        let kartikaObj = null;
+                        if (moonData.isKartika) {
+                            kartikaObj = createDancingKartika();
+                            kartikaObj.scale.setScalar(2.5);
+                            kartikaObj.position.set(0, 1, 0);
+                            moonMesh.add(kartikaObj);
+
+                            // Bikin tulisan menempel di ekuator permukaan bulan ("Tato KARTIKA")
+                            const textCanvas = document.createElement('canvas');
+                            textCanvas.width = 1024;
+                            textCanvas.height = 512;
+                            const tCtx = textCanvas.getContext('2d');
+                            
+                            tCtx.font = 'bold 110px "Segoe UI", Arial, sans-serif';
+                            tCtx.fillStyle = '#9b59b6'; 
+                            tCtx.textAlign = 'center';
+                            tCtx.textBaseline = 'middle';
+                            tCtx.lineWidth = 10;
+                            tCtx.strokeStyle = '#ffffff';
+
+                            // Tulis KARTIKA di dua sisi (depan dan belakang tekstur bola)
+                            const textPositions = [256, 768]; 
+                            textPositions.forEach(xPos => {
+                                tCtx.strokeText("KARTIKA", xPos, 256);
+                                tCtx.fillText("KARTIKA", xPos, 256);
+                            });
+
+                            const textTex = new THREE.CanvasTexture(textCanvas);
+                            textTex.minFilter = THREE.LinearFilter;
+                            
+                            const textMat = new THREE.MeshBasicMaterial({ 
+                                map: textTex, 
+                                transparent: true, 
+                                depthWrite: false 
+                            });
+                            const textSphere = new THREE.Mesh(sphereGeo, textMat);
+                            textSphere.scale.setScalar(1.02); 
+                            moonMesh.add(textSphere);
+                        }
+
+                        const mPathGeo = new THREE.RingGeometry(moonData.distance - 0.05, moonData.distance + 0.05, 64);
+                        const mPathMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.15 });
+                        const mPathMesh = new THREE.Mesh(mPathGeo, mPathMat);
+                        mPathMesh.rotation.x = Math.PI / 2;
+                        
+                        moonOrbitGroup.add(mPathMesh);
+                        moonOrbitGroup.add(moonMesh);
+                        
+                        moonRefs.push({
+                            group: moonOrbitGroup,
+                            mesh: moonMesh,
+                            speed: moonData.speed,
+                            lia: kartikaObj
+                        });
+                    }
+                }
+
+                planetObjects.push({
+                    orbitGroup,
+                    planetMesh,
+                    data,
+                    moonRefs
+                });
+            }
+        }
+
+        // --- Interaction (Click to Zoom & Show Modal) ---
+        function onMouseClick(event) {
+            // Jangan deteksi klik jika menekan tombol atau jika modal sedang terbuka
+            if(event.target.tagName.toLowerCase() === 'button' || event.target.closest('button') || document.getElementById('media-modal').classList.contains('active')) return;
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(clickableMeshes);
+
+            if (intersects.length > 0) {
+                const clickedObject = intersects[0].object;
+                
+                // Cek apakah yang diklik adalah Pin Jawa Timur di Bumi
+                if (clickedObject.userData.isJawaTimur) {
+                    showMediaModal('user');
+                    return; // Hentikan fungsi agar tidak zoom jika cuma mau lihat modal
+                }
+                
+                // Cek apakah yang diklik adalah Bulan Kartika
+                if (clickedObject.userData.isMoon && clickedObject.userData.info.isKartika) {
+                    showMediaModal('kartika');
+                    // Tidak pakai return di sini, agar kameranya tetap zoom romantis ke bulannya!
+                }
+
+                // Fungsi Zoom Kamera ke objek yang diklik
+                if (clickedObject.userData.isPlanet || clickedObject.userData.isMoon) {
+                    focusOnPlanet(clickedObject);
+                }
+            }
+        }
+
+        // --- Modals Controller (Audio & Photo Carousel) ---
+        function updateCarouselDisplay() {
+            const img = document.getElementById('modal-img');
+            img.style.opacity = 0; // Efek fade out tipis
+            
+            setTimeout(() => {
+                img.src = currentPhotosArray[currentPhotoIndex];
+                img.style.opacity = 1; // Efek fade in
+            }, 150);
+
+            // Update titik-titik (dots) indikator
+            const dotsContainer = document.getElementById('carousel-dots');
+            dotsContainer.innerHTML = '';
+            for (let i = 0; i < currentPhotosArray.length; i++) {
+                const dot = document.createElement('div');
+                dot.className = `dot ${i === currentPhotoIndex ? 'active' : ''}`;
+                dot.addEventListener('click', () => {
+                    currentPhotoIndex = i;
+                    updateCarouselDisplay();
+                });
+                dotsContainer.appendChild(dot);
+            }
+        }
+
+        function nextPhoto() {
+            if (currentPhotosArray.length <= 1) return;
+            currentPhotoIndex = (currentPhotoIndex + 1) % currentPhotosArray.length;
+            updateCarouselDisplay();
+        }
+
+        function prevPhoto() {
+            if (currentPhotosArray.length <= 1) return;
+            currentPhotoIndex = (currentPhotoIndex - 1 + currentPhotosArray.length) % currentPhotosArray.length;
+            updateCarouselDisplay();
+        }
+
+        function showMediaModal(type) {
+            const modal = document.getElementById('media-modal');
+            const title = document.getElementById('modal-title');
+            const caption = document.getElementById('modal-caption');
+
+            // Hentikan audio yang sedang menyala sebelumnya
+            if (activeAudio) {
+                activeAudio.pause();
+                activeAudio = null;
+            }
+
+            if (type === 'user') {
+                currentPhotosArray = USER_PHOTO_URLS;
+                title.textContent = 'Al';
+                caption.textContent = 'about me and my life what i choose to live';
+                activeAudio = new Audio(USER_SOUNDTRACK_URL);
+            } else if (type === 'kartika') {
+                currentPhotosArray = KARTIKA_PHOTO_URLS;
+                title.textContent = 'cinta';
+                caption.textContent = 'kartika, my love and the moon of my heart';
+                activeAudio = new Audio(KARTIKA_SOUNDTRACK_URL);
+            }
+
+            // Atur foto pertama
+            currentPhotoIndex = 0;
+            updateCarouselDisplay();
+
+            // Sembunyikan panah jika fotonya cuma 1
+            const btnPrev = document.getElementById('carousel-prev');
+            const btnNext = document.getElementById('carousel-next');
+            if(currentPhotosArray.length <= 1) {
+                btnPrev.style.display = 'none';
+                btnNext.style.display = 'none';
+            } else {
+                btnPrev.style.display = 'flex';
+                btnNext.style.display = 'flex';
+            }
+
+            activeAudio.loop = true;
+            activeAudio.play().catch(err => {
+                console.log("Auto-play terhambat browser policy, klik layar untuk memutar musik:", err);
+                caption.innerHTML = 'Musik siap! <span style="color: var(--primary-color); cursor:pointer; text-decoration:underline;">Klik di sini untuk memutar audio</span>';
+                
+                const forcePlay = () => {
+                    if(activeAudio) activeAudio.play();
+                    caption.textContent = type === 'user' ? 'about me and my life what i choose to live' : 'kartika, my love and the moon of my heart';
+                    modal.removeEventListener('click', forcePlay);
+                };
+                modal.addEventListener('click', forcePlay);
+            });
+
+            modal.classList.add('active');
+        }
+
+        function closeMediaModal() {
+            const modal = document.getElementById('media-modal');
+            modal.classList.remove('active');
+            if (activeAudio) {
+                activeAudio.pause();
+                activeAudio = null;
+            }
+        }
+
+        function focusOnPlanet(mesh) {
+            targetPlanet = mesh;
+            isTransitioning = true; 
+            mesh.getWorldPosition(lastTargetPos);
+
+            const info = mesh.userData.info;
+            document.getElementById('info-title').textContent = info.name;
+            document.getElementById('info-title').style.color = info.color;
+            document.getElementById('info-desc').textContent = info.desc;
+            document.getElementById('btn-back').style.display = 'flex';
+        }
+
+        function resetView() {
+            targetPlanet = null; 
+            isTransitioning = true; 
+            
+            document.getElementById('info-title').textContent = "TATA SURYA";
+            document.getElementById('info-title').style.color = "var(--primary-color)";
+            document.getElementById('info-desc').textContent = "Sistem planet tempat kita tinggal. Klik planet mana saja untuk memperbesar (Zoom), lalu tahan dan geser mouse untuk melihat dari berbagai sudut!";
+            document.getElementById('btn-back').style.display = 'none';
+        }
+
+        function setupUIControls() {
+            // Pasang Tombol Tutup Modal Media
+            document.getElementById('modal-close-btn').addEventListener('click', closeMediaModal);
+            document.getElementById('media-modal').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('media-modal')) closeMediaModal();
+            });
+
+            // Pasang Tombol Carousel
+            document.getElementById('carousel-prev').addEventListener('click', prevPhoto);
+            document.getElementById('carousel-next').addEventListener('click', nextPhoto);
+
+            // Pasang Deteksi Swipe di Gambar (Untuk Handphone)
+            const imgElement = document.getElementById('modal-img');
+            imgElement.addEventListener('touchstart', e => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+            
+            imgElement.addEventListener('touchend', e => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, { passive: true });
+
+            function handleSwipe() {
+                const threshold = 40; // minimal jarak swipe
+                if (touchEndX < touchStartX - threshold) {
+                    nextPhoto(); // Swipe Kiri (Lanjut)
+                }
+                if (touchEndX > touchStartX + threshold) {
+                    prevPhoto(); // Swipe Kanan (Kembali)
+                }
+            }
+
+            const btnPause = document.getElementById('btn-pause');
+            btnPause.addEventListener('click', () => {
+                isTimePaused = !isTimePaused;
+                if(isTimePaused) {
+                    btnPause.classList.add('active');
+                    btnPause.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Mulai Waktu`;
+                } else {
+                    btnPause.classList.remove('active');
+                    btnPause.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg> Jeda Orbit`;
+                }
+            });
+            document.getElementById('btn-back').addEventListener('click', resetView);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // --- Animation Loop ---
+        const targetCameraPos = new THREE.Vector3();
+        const planetWorldPos = new THREE.Vector3();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = Date.now();
+
+            if (!isTimePaused) {
+                planetObjects.forEach(obj => {
+                    // Rotasi Orbit Planet
+                    obj.orbitGroup.rotation.y += obj.data.orbitSpeed;
+                    
+                    // Rotasi Poros Planet
+                    obj.planetMesh.rotation.y += obj.data.rotationSpeed;
+
+                    // Efek Berdenyut (Pulse) Ring Penanda Jawa Timur di Bumi
+                    if (obj.data.id === 'earth') {
+                        obj.planetMesh.children.forEach(child => {
+                            if (child.userData.isJawaTimur && child.geometry.type === 'RingGeometry') {
+                                const scale = 1 + Math.abs(Math.sin(time * 0.005)) * 0.6;
+                                child.scale.set(scale, scale, 1);
+                                child.material.opacity = 0.8 - (scale - 1) * 1.2;
+                            }
+                        });
+                    }
+
+                    // Rotasi Bulan & Animasi Kartika
+                    if (obj.moonRefs) {
+                        obj.moonRefs.forEach(moon => {
+                            moon.group.rotation.y += moon.speed; 
+                            moon.mesh.rotation.y += 0.02; 
+                            
+                            // Animasi Dansa Spesial untuk Kartika
+                            if(moon.lia) {
+                                moon.lia.position.y = 1 + Math.abs(Math.sin(time * 0.005)) * 0.25;
+                                moon.lia.rotation.y += 0.1;
+                                moon.lia.rotation.z = Math.sin(time * 0.008) * 0.2;
+                            }
+                        });
+                    }
+                });
+            }
+
+            if (starField) starField.rotation.y += 0.00005;
+
+            // PENINGKATAN KAMERA: Bebas berputar walau sedang zoom
+            if (targetPlanet) {
+                targetPlanet.getWorldPosition(planetWorldPos);
+                
+                const deltaPos = planetWorldPos.clone().sub(lastTargetPos);
+
+                if (isTransitioning) {
+                    const radius = targetPlanet.userData.info.radius;
+                    const offset = new THREE.Vector3(radius * 3.5, radius * 1.5, radius * 3.5);
+                    targetCameraPos.copy(planetWorldPos).add(offset);
+
+                    camera.position.lerp(targetCameraPos, 0.06);
+                    controls.target.lerp(planetWorldPos, 0.06);
+
+                    if (camera.position.distanceTo(targetCameraPos) < 0.5) {
+                        isTransitioning = false;
+                    }
+                } else {
+                    camera.position.add(deltaPos);
+                    controls.target.copy(planetWorldPos);
+                }
+
+                lastTargetPos.copy(planetWorldPos);
+
+            } else if (isTransitioning) {
+                const homePos = new THREE.Vector3(0, 150, 220);
+                camera.position.lerp(homePos, 0.03);
+                controls.target.lerp(new THREE.Vector3(0, 0, 0), 0.03);
+                
+                if (camera.position.distanceTo(homePos) < 1) {
+                    isTransitioning = false;
+                }
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // --- Start ---
+        window.onload = function () {
+            init();
+        }
+    </script>
+</body>
+</html>
